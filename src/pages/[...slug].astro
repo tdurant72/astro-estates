@@ -1,0 +1,49 @@
+---
+import "../styles/global.css";
+import type { Block } from "@wp-block-tools/styles";
+import BlockRenderer from "../components/BlockRenderer.astro";
+import CommonHead from "../components/CommonHead.astro";
+
+export async function getStaticPaths() {
+  const response = await fetch(`${import.meta.env.WPGRAPHQL_URL}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `
+		query PagesQuery {
+			pages(first:10000){
+				nodes{
+				blocks
+				uri
+				seo{
+					title
+					metaDesc
+					}
+				}
+			}
+		}
+	`,
+    }),
+  });
+  const { data } = await response.json();
+  return data.pages.nodes.map((page: any) => ({
+    params: { slug: page.uri === "/" ? undefined : page.uri },
+    props: {
+      seo: page.seo,
+      blocks: page.blocks,
+    },
+  }));
+}
+const title = "Astro Estates";
+
+const { blocks, seo } = Astro.props;
+---
+
+<html lang="en">
+  <CommonHead title={seo.title || ""} description={seo.metaDesc || ""} />
+  <body>
+    <BlockRenderer blocks={blocks} />
+  </body>
+</html>
